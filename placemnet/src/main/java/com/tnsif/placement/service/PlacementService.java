@@ -1,42 +1,49 @@
 package com.tnsif.placement.service;
 
+import com.tnsif.placement.entity.Placement;
+import com.tnsif.placement.repository.PlacementRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
-
-import com.tnsif.placement.entity.Placement;
-import com.tnsif.placement.repository.PlacementRepository;
-
-import jakarta.persistence.NoResultException;
-
+@Service
 public class PlacementService {
-	@Autowired
+
+    @Autowired
     private PlacementRepository placementRepository;
 
-    // Get all placement records
-    public List<Placement> getAllPlacements() {
+    // ✅ Get all placements
+    public List<Placement> listAll() {
         return placementRepository.findAll();
     }
 
-    // Save a new placement record
-    public void savePlacement(Placement placement) {
-        placementRepository.save(placement);
+    // ✅ Get placement by ID
+    public Optional<Placement> findById(Integer id) {
+        return placementRepository.findById(id);
     }
 
-    // Get a placement by ID
-    public Placement getPlacementById(Integer id) {
-        Optional<Placement> placement = placementRepository.findById(id);
-        return placement.orElseThrow(() -> new NoResultException("Placement not found with ID: " + id));
+    // ✅ Save or update placement
+    public Placement save(Placement placement) {
+        try {
+            if (placement.getPlacementId() != 0 
+                    && !placementRepository.existsById(placement.getPlacementId())) {
+                throw new RuntimeException("Placement with ID " + placement.getPlacementId() + " does not exist.");
+            }
+            return placementRepository.save(placement);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            throw new RuntimeException("Placement data was modified by another user. Please refresh and try again.");
+        }
     }
 
-    // Delete a placement by ID
-    public void deletePlacement(Integer id) {
-        placementRepository.deleteById(id);
+    // ✅ Delete placement by ID
+    public void delete(Integer id) {
+        if (placementRepository.existsById(id)) {
+            placementRepository.deleteById(id);
+        } else {
+            throw new RuntimeException("Placement with ID " + id + " does not exist.");
+        }
     }
-
-    // Update an existing placement
-    //
-
-
 }

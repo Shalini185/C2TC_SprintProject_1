@@ -1,73 +1,67 @@
 package com.tnsif.placement.controller;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
 
 import com.tnsif.placement.entity.Placement;
 import com.tnsif.placement.service.PlacementService;
 
-import jakarta.persistence.NoResultException;
-
-
+@RestController
+@RequestMapping("/PlacementService")
 public class PlacementController {
-	 @Autowired
-	    private PlacementService service;
 
-	    // GET all placements
-	    @GetMapping("/PlacementService")
-	    public List<Placement> listAll() {
-	        return service.listAll();
-	    }
+    @Autowired
+    private PlacementService s;
 
-	    // POST new placement
-	    @PostMapping("/PlacementService")
-	    public void add(@RequestBody Placement placement) {
-	        service.save(placement);
-	    }
+    @GetMapping
+    public List<Placement> listAll() {
+        return s.listAll();
+    }
 
-	    // GET placement by ID
-	    @GetMapping("/PlacementService/{id}")
-	    public ResponseEntity<Placement> get(@PathVariable Integer id) {
-	        try {
-	            Placement placement = service.get(id);
-	            return new ResponseEntity<>(placement, HttpStatus.OK);
-	        } catch (NoResultException e) {
-	            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-	        }
-	    }
+    @PostMapping
+    public ResponseEntity<Placement> add(@RequestBody Placement s1) {
+        Placement saved = s.save(s1);
+        return new ResponseEntity<>(saved, HttpStatus.CREATED);
+    }
 
-	    // PUT update placement
-	    @PutMapping("/PlacementService/{id}")
-	    public ResponseEntity<Placement> update(@PathVariable Integer id, @RequestBody Placement updatedPlacement) {
-	        try {
-	            Placement existingPlacement = service.get(id);
+    @GetMapping("/{id}")
+    public ResponseEntity<Placement> get(@PathVariable Integer id) {
+        Optional<Placement> placementOpt = s.findById(id);
+        return placementOpt
+                .map(placement -> new ResponseEntity<>(placement, HttpStatus.OK))
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
 
-	            existingPlacement.setStudentName(updatedPlacement.getStudentName());
-	            existingPlacement.setStudentDepartment(updatedPlacement.getStudentDepartment());
-	            existingPlacement.setCompanyName(updatedPlacement.getCompanyName());
-	            existingPlacement.setJobRole(updatedPlacement.getJobRole());
-	            existingPlacement.setPlacementStatus(updatedPlacement.getPlacementStatus());
+    @PutMapping("/{id}")
+    public ResponseEntity<Placement> update(@PathVariable Integer id, @RequestBody Placement updatedPlacement) {
+        Optional<Placement> placementOpt = s.findById(id);
+        if (placementOpt.isPresent()) {
+            Placement existingPlacement = placementOpt.get();
+            existingPlacement.setStudentName(updatedPlacement.getStudentName());
+            existingPlacement.setStudentDepartment(updatedPlacement.getStudentDepartment());
+            existingPlacement.setCompanyName(updatedPlacement.getCompanyName());
+            existingPlacement.setJobRole(updatedPlacement.getJobRole());
+            existingPlacement.setPlacementStatus(updatedPlacement.getPlacementStatus());
+            existingPlacement.setInterviewDate(updatedPlacement.getInterviewDate());
 
-	            service.update(existingPlacement);
-	            return new ResponseEntity<>(existingPlacement, HttpStatus.OK);
-	        } catch (NoResultException e) {
-	            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-	        }
-	    }
+            Placement saved = s.save(existingPlacement);
+            return new ResponseEntity<>(saved, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
 
-	    // DELETE placement
-	    @DeleteMapping("/PlacementService/{id}")
-	    public void delete(@PathVariable Integer id) {
-	        service.delete(id);
-	    }
-
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        if (s.findById(id).isPresent()) {
+            s.delete(id);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
 }
